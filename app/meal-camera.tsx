@@ -1,30 +1,26 @@
-import { CameraType, CameraView, useCameraPermissions } from 'expo-camera'
+import { CameraView, useCameraPermissions } from 'expo-camera'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
-import { Button, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useRef, useState } from 'react'
+import { Button, Pressable, StyleSheet, Text, View, ImageBackground } from 'react-native'
 
 export default function MealCamera() {
-  const [facing, setFacing] = useState<CameraType>('back')
+  const [previewVisible, setPreviewVisible] = useState(false)
+  const [capturedImage, setCapturedImage] = useState<any>(null)
   const [permission, requestPermission] = useCameraPermissions()
   const router = useRouter()
+  const camera = useRef<CameraView>(null)
 
   if (!permission) {
-    // Camera permissions are still loading.
     return <View />
   }
 
   if (!permission.granted) {
-    // Camera permissions are not granted yet.
     return (
       <View style={styles.container}>
         <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
         <Button onPress={requestPermission} title="grant permission" />
       </View>
     )
-  }
-
-  function toggleCameraFacing() {
-    setFacing((current) => (current === 'back' ? 'front' : 'back'))
   }
 
   const onBack = () => {
@@ -35,9 +31,24 @@ export default function MealCamera() {
     router.push('/meal-form')
   }
 
-  return (
+  const takePicture = async () => {
+    if (!camera?.current) return
+    const photo = await camera.current?.takePictureAsync()
+    setPreviewVisible(true)
+    setCapturedImage(photo)
+  }
+
+  return previewVisible && capturedImage ? (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing}>
+      <ImageBackground source={{ uri: capturedImage?.uri }} style={{ flex: 1 }}>
+        <Pressable onPress={onBack} style={styles.backBtn}>
+          <Text style={styles.back}>Back</Text>
+        </Pressable>
+      </ImageBackground>
+    </View>
+  ) : (
+    <View style={styles.container}>
+      <CameraView style={styles.camera} facing="back" ref={camera}>
         <Pressable onPress={onBack} style={styles.backBtn}>
           <Text style={styles.back}>Back</Text>
         </Pressable>
@@ -45,9 +56,7 @@ export default function MealCamera() {
           <Text style={styles.back}>Skip</Text>
         </Pressable>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-            <Text style={styles.text}>Flip Camera</Text>
-          </TouchableOpacity>
+          <Pressable style={styles.button} onPress={takePicture} />
         </View>
       </CameraView>
     </View>
@@ -69,9 +78,10 @@ const styles = StyleSheet.create({
     margin: 64,
   },
   button: {
-    flex: 1,
-    alignSelf: 'flex-end',
-    alignItems: 'center',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'red',
   },
   text: {
     fontSize: 24,
