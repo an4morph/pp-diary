@@ -1,12 +1,14 @@
-import { CameraView, useCameraPermissions } from 'expo-camera'
+import { CameraCapturedPicture, CameraView, useCameraPermissions } from 'expo-camera'
 import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import { Button, Pressable, StyleSheet, Text, View, ImageBackground } from 'react-native'
+import * as MediaLibrary from 'expo-media-library'
 
 export default function MealCamera() {
   const [previewVisible, setPreviewVisible] = useState(false)
-  const [capturedImage, setCapturedImage] = useState<any>(null)
+  const [capturedImage, setCapturedImage] = useState<CameraCapturedPicture | null>(null)
   const [permission, requestPermission] = useCameraPermissions()
+  const [permissionResponse1, requestPermission1] = MediaLibrary.usePermissions()
   const router = useRouter()
   const camera = useRef<CameraView>(null)
 
@@ -35,14 +37,24 @@ export default function MealCamera() {
     if (!camera?.current) return
     const photo = await camera.current?.takePictureAsync()
     setPreviewVisible(true)
-    setCapturedImage(photo)
+    if (photo) setCapturedImage(photo)
+  }
+  const retakePicture = async () => {
+    setCapturedImage(null)
+    setPreviewVisible(false)
+  }
+  const savePicture = async () => {
+    if (capturedImage) MediaLibrary.saveToLibraryAsync(capturedImage.uri)
   }
 
   return previewVisible && capturedImage ? (
     <View style={styles.container}>
       <ImageBackground source={{ uri: capturedImage?.uri }} style={{ flex: 1 }}>
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.back}>Back</Text>
+        <Pressable onPress={retakePicture} style={styles.backBtn}>
+          <Text style={styles.back}>Retake</Text>
+        </Pressable>
+        <Pressable onPress={savePicture} style={styles.skipBtn}>
+          <Text style={styles.back}>Save</Text>
         </Pressable>
       </ImageBackground>
     </View>
