@@ -1,15 +1,14 @@
 import { CameraCapturedPicture, CameraView, useCameraPermissions } from 'expo-camera'
-import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { Button, Pressable, StyleSheet, Text, View, ImageBackground } from 'react-native'
+import { Button, StyleSheet, Text, View } from 'react-native'
 import * as MediaLibrary from 'expo-media-library'
+import { CameraComponent } from '../components/camera/camera'
+import { CapturedPicture } from '../components/camera/capturedPicture'
 
 export default function MealCamera() {
   const [previewVisible, setPreviewVisible] = useState(false)
   const [capturedImage, setCapturedImage] = useState<CameraCapturedPicture | null>(null)
   const [permission, requestPermission] = useCameraPermissions()
-  const [permissionResponse1, requestPermission1] = MediaLibrary.usePermissions()
-  const router = useRouter()
   const camera = useRef<CameraView>(null)
 
   if (!permission) {
@@ -25,53 +24,26 @@ export default function MealCamera() {
     )
   }
 
-  const onBack = () => {
-    router.back()
-  }
-
-  const skipPhoto = () => {
-    router.push('/meal-form')
-  }
-
   const takePicture = async () => {
     if (!camera?.current) return
     const photo = await camera.current?.takePictureAsync()
     setPreviewVisible(true)
     if (photo) setCapturedImage(photo)
   }
+
   const retakePicture = async () => {
     setCapturedImage(null)
     setPreviewVisible(false)
   }
+
   const savePicture = async () => {
     if (capturedImage) MediaLibrary.saveToLibraryAsync(capturedImage.uri)
   }
 
   return previewVisible && capturedImage ? (
-    <View style={styles.container}>
-      <ImageBackground source={{ uri: capturedImage?.uri }} style={{ flex: 1 }}>
-        <Pressable onPress={retakePicture} style={styles.backBtn}>
-          <Text style={styles.back}>Retake</Text>
-        </Pressable>
-        <Pressable onPress={savePicture} style={styles.skipBtn}>
-          <Text style={styles.back}>Save</Text>
-        </Pressable>
-      </ImageBackground>
-    </View>
+    <CapturedPicture save={savePicture} retake={retakePicture} imageUrl={capturedImage?.uri} />
   ) : (
-    <View style={styles.container}>
-      <CameraView style={styles.camera} facing="back" ref={camera}>
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.back}>Back</Text>
-        </Pressable>
-        <Pressable onPress={skipPhoto} style={styles.skipBtn}>
-          <Text style={styles.back}>Skip</Text>
-        </Pressable>
-        <View style={styles.buttonContainer}>
-          <Pressable style={styles.button} onPress={takePicture} />
-        </View>
-      </CameraView>
-    </View>
+    <CameraComponent takePicture={takePicture} cameraRef={camera} />
   )
 }
 
